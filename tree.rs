@@ -71,6 +71,47 @@ impl<T: Ord Eq> MaybeNode<T>: Eq {
     }
 }
 
+fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
+    match node {
+      @Empty => {None}
+      @Node(data, _, _, _) => { Some(data) }
+    }
+}
+
+#[test]
+fn check_minimum() {
+    let mut tree = insert(@20, @Empty);
+    match node_data(tree) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @20 }
+    }
+
+    let mut tree = insert(@20, @Empty);
+    tree = insert(@30, tree);
+    tree = insert(@40, tree);
+    match node_data(tree) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @20 }
+    }
+
+
+    // this setup segfaults!
+    let mut tree = insert(@0, @Empty);
+    tree = insert(@-10, tree);
+    tree = insert(@10, tree);
+    tree = insert(@11, tree);
+    tree = insert(@5, tree);
+    tree = insert(@-5, tree);
+    tree = insert(@-20, tree);
+    tree = insert(@-15, tree);
+    tree = insert(@-30, tree);
+    match node_data(tree) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @-30 }
+    }
+    // end segfault block
+}
+
 
 // Pure functional delete
 fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> {
@@ -162,9 +203,37 @@ fn find<T: Eq Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
     }
 }
 
+fn minimum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
+    match node {
+      @Node(_, _, left, _) => {
+        // walk down one level
+        match left {
+          @Empty => { node }
+          _ => { minimum(left) }
+        }
+      }
+      @Empty => { @Empty }
+    }
+}
+
+
+fn maximum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
+    match node {
+      @Node(_, _, _, right) => {
+        maximum(right)
+      }
+      @Empty => { node }
+    }
+}
 fn find_successor<T: Eq> (node: @MaybeNode<T>) -> @MaybeNode<T> {
+    //a node's in-order successor is the left-most child of its right subtree,
     let _ = node;               //shut up the errors.
-    return @Empty
+    match node {
+      @Node(_, _, left, _) => {
+        minimum(left)
+      }
+      @Empty => { @Empty }
+    }
 }
 
 
@@ -208,6 +277,44 @@ fn test_successor_empty () {
     let newtree = find_successor(tree);
 
     assert newtree == @Empty
+}
+
+#[test]
+fn test_successor_one () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@20, tree);
+    tree = insert(@30, tree);
+
+    let newtree = find_successor(tree);
+
+    assert newtree == @Node(@30, @Empty, @Empty, @Empty)
+}
+
+#[test]
+fn test_successor_double () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@20, tree);
+    tree = insert(@30, tree);
+    tree = insert(@-10, tree);
+
+    let newtree = find_successor(tree);
+
+    assert newtree == @Node(@30, @Empty, @Empty, @Empty)
+}
+
+#[test]
+fn test_successor_longer () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@20, tree);
+    tree = insert(@30, tree);
+    tree = insert(@25, tree);
+
+    let newtree = find_successor(tree);
+
+    assert newtree == @Node(@25, @Empty, @Empty, @Empty)
 }
 
 
