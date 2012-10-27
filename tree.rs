@@ -16,33 +16,25 @@ enum MaybeNode<T>
 }
 
 
-
 impl<T: Ord Eq> MaybeNode<T>: Eq {
-    pure fn eq(other: &MaybeNode<T>)-> bool {
-        // TODO: Clean this drek up. Nested match = ugly
-        match self {
-          Empty => {
-            match other {
-              &Empty => { true }
-              _ => { false}
-            }
-          }
 
-          Node(selfdata, selfLeft, selfRight) => {
-            match other {
-              &Empty => { false }
-              &Node(otherdata, otherLeft, otherRight) => {
-                if ( selfdata == otherdata ) {
-                    return (true
-                            && (selfLeft == otherLeft)
-                            && selfRight == otherRight)
-                }
-                else
-                {
-                    false
-                }
-              }
+    pure fn eq(other: &MaybeNode<T>)-> bool {
+        match (self, other) {
+          ( Empty, &Empty ) => { true }
+          ( Empty, _ )  => { false }
+          ( Node(selfdata, selfLeft, selfRight), &Empty ) => { false }
+          ( Node(selfdata, selfLeft, selfRight),
+           &Node(otherdata, otherLeft, otherRight) ) => {
+            if ( selfdata == otherdata ) {
+                // Note that this kicks out the equality question to
+                // T's specification. If that happens to be a
+                // MaybeNode, we just recurse and have done with
+                // it. :-)
+                return (true
+                        && (selfLeft == otherLeft)
+                        && (selfRight == otherRight))
             }
+            else { false }
           }
         }
     }
