@@ -81,7 +81,7 @@ fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
 #[test]
 fn check_minimum() {
     let mut tree = insert(@20, @Empty);
-    match node_data(tree) {
+    match node_data(minimum(tree)) {
       None => { fail(~"Rong") }
       Some(data) => { assert data == @20 }
     }
@@ -89,27 +89,38 @@ fn check_minimum() {
     let mut tree = insert(@20, @Empty);
     tree = insert(@30, tree);
     tree = insert(@40, tree);
-    match node_data(tree) {
+    match node_data(minimum(tree)) {
       None => { fail(~"Rong") }
       Some(data) => { assert data == @20 }
     }
-
-
     // this setup segfaults!
     let mut tree = insert(@0, @Empty);
     tree = insert(@-10, tree);
     tree = insert(@10, tree);
     tree = insert(@11, tree);
     tree = insert(@5, tree);
-    tree = insert(@-5, tree);
+    tree = insert(@1, tree);
     tree = insert(@-20, tree);
     tree = insert(@-15, tree);
-    tree = insert(@-30, tree);
-    match node_data(tree) {
+
+    match node_data(minimum(tree)) {
       None => { fail(~"Rong") }
-      Some(data) => { assert data == @-30 }
+      Some(data) => { assert data == @-20 }
     }
-    // end segfault block
+
+    tree = insert(@-21, tree);
+
+    match node_data(minimum(tree)) {
+      None => { fail(~"Rong") }
+  Some(data) => { assert data == @-21 }
+}
+    tree = insert(@-50, tree);
+    tree = insert(@-40, tree);
+    tree = insert(@-42, tree);
+    match node_data(minimum(tree)) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @-50 }
+    }
 }
 
 
@@ -170,7 +181,7 @@ fn insert<T: Eq Ord> (newdata: @T,
 fn insert_under<T: Eq Ord> (newdata: @T,
                       node: @MaybeNode<T>,
                       node_parent: @MaybeNode<T>) -> @MaybeNode<T> {
-    @match node {
+    let result = @match node {
       @Empty => {
         Node(newdata, node_parent, @Empty, @Empty)
       }
@@ -186,7 +197,9 @@ fn insert_under<T: Eq Ord> (newdata: @T,
             Node(data, parent, left, insert_under(newdata, right, node))
         }
       }
-    }
+    };
+
+    return result
 }
 
 
