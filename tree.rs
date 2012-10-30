@@ -34,8 +34,8 @@ Initial exploration: Pure functional data structures
 enum MaybeNode<T>
 {
     Empty,
-    // Data, parent, left, right
-    Node(@T, @MaybeNode<T>,@MaybeNode<T>, @MaybeNode<T>)
+    // Data, left, right
+    Node(@T, @MaybeNode<T>, @MaybeNode<T>)
 }
 
 
@@ -45,13 +45,9 @@ impl<T: Ord Eq> MaybeNode<T>: Eq {
         match (self, other) {
           ( Empty, &Empty ) => { true }
           ( Empty, _ )  => { false }
-          ( Node(_, _, _, _), &Empty ) => { false }
-          ( Node(selfdata, _, selfLeft, selfRight),
-           &Node(otherdata, _, otherLeft, otherRight) ) => {
-
-            // We don't check parent equality. If we did, we'd have to
-            // recurse into ourselves. Ungood.
-
+          ( Node(_, _, _), &Empty ) => { false }
+          ( Node(selfdata, selfLeft, selfRight),
+           &Node(otherdata,otherLeft, otherRight) ) => {
             if (selfdata == otherdata) {
 
                 // Note that this kicks out the equality question to
@@ -76,7 +72,7 @@ impl<T: Ord Eq> MaybeNode<T>: Eq {
 fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
     match node {
       @Empty => {None}
-      @Node(data, _, _, _) => { Some(data) }
+      @Node(data, _, _) => { Some(data) }
     }
 }
 
@@ -86,7 +82,7 @@ fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> 
     //io::println(fmt!("%?\n", node));
     match node {
       @Empty => { @Empty }
-      @Node(node_data, parent, left, right) => {
+      @Node(node_data, left, right) => {
         if (data_to_delete == node_data)
         {
             //io::println(fmt!("eq\n"));
@@ -102,28 +98,40 @@ fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> 
                     else if (right != @Empty) { right }
                     else { fail(~"Error: invalid"); };
 
-                //rewrite the parent slot
+
                 match child_node {
-                  //blank is the parent that's been deleted
-                  @Node(child_data, _, left, right) => {
-                    @Node(child_data, parent, left, right)
+                  @Node(child_data, left, right) => {
+                    @Node(child_data, left, right)
                   }
                   @Empty => { @Empty }
                 }
             }
             //Two children.
             else {
-                //stubbed in
-                fail(~"Unimplemented. Please send hate mail to /dev/null");
-                //return @Empty
+                // If we had no right child, successor is less
+                // straightforward. Since we (at this branch) by
+                // definition HAVE a right child, we can assume away that case of walking up to root checking for left branches.
+
+                //construct this node as:
+                //
+                //Grab successor data and use it, use left, use left
+                //tree that has had successor removed.
+                let successor = minimum(right);
+                match successor {
+                  @Node(s_data, _, _) => {
+                    @Node(s_data, left,
+                          delete(s_data, right))
+                  }
+                  @Empty => { fail(~"Should be impossible"); }
+                }
             }
         }
         else if ( node_data > data_to_delete) {
             //io::println(fmt!("left\n"));
-            @Node(node_data, parent, delete(data_to_delete, left), right) }
+            @Node(node_data, delete(data_to_delete, left), right) }
         else if ( node_data < data_to_delete) {
             //io::println(fmt!("right\n"));
-            @Node(node_data, parent, left, delete(data_to_delete, right)) }
+            @Node(node_data, left, delete(data_to_delete, right)) }
         else { fail(~"A number became neither <, >, or ="); }
       }
     }
@@ -132,27 +140,25 @@ fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> 
 
 fn insert<T: Eq Ord> (newdata: @T,
                       node: @MaybeNode<T>) -> @MaybeNode<T> {
-    // workaround to use @empty as the default argument
-    insert_under(newdata, node, @Empty)
+    insert_under(newdata, node)
 }
 
 fn insert_under<T: Eq Ord> (newdata: @T,
-                      node: @MaybeNode<T>,
-                      node_parent: @MaybeNode<T>) -> @MaybeNode<T> {
+                      node: @MaybeNode<T>) -> @MaybeNode<T> {
     let result = @match node {
       @Empty => {
-        Node(newdata, node_parent, @Empty, @Empty)
+        Node(newdata,@Empty, @Empty)
       }
-      @Node(data, parent, left, right) => {
+      @Node(data, left, right) => {
         if (data == newdata) {
             // a bst doesn't have duplicates
-            Node(data, parent, left, right)
+            Node(data, left, right)
         }
         else if ( data > newdata ) {
-            Node(data, parent, insert_under(newdata, left, node), right)
+            Node(data, insert_under(newdata, left), right)
         }
         else {
-            Node(data, parent, left, insert_under(newdata, right, node))
+            Node(data, left, insert_under(newdata, right))
         }
       }
     };
@@ -166,7 +172,7 @@ fn find<T: Eq Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
       @Empty => {
         return @Empty;
       }
-      @Node(data, _, left, right) => {
+      @Node(data, left, right) => {
         if (data == newdata)       { return root }
         else if ( data > newdata ) { return find(newdata, left) }
         else                       { return find(newdata, right) }
@@ -176,7 +182,7 @@ fn find<T: Eq Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
 
 fn minimum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
     match node {
-      @Node(_, _, left, _) => {
+      @Node(_, left, _) => {
         // walk down one level
         match left {
           @Empty => { node }
@@ -190,68 +196,10 @@ fn minimum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
 
 fn maximum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
     match node {
-      @Node(_, _, _, right) => {
+      @Node(_, _, right) => {
         maximum(right)
       }
       @Empty => { node }
-    }
-}
-
-fn find_a_leftie<T: Eq Ord>(node: @MaybeNode<T>) -> @MaybeNode<T> {
-    match node {
-      @Empty => { @Empty }
-      @Node(data, parent, _, _) => {
-        io::println(fmt!("walking up... %?\n", data));
-        match parent  {
-          // root case, at which point ret
-          @Empty => {
-            io::println(fmt!("root!\n"));
-            node
-          }
-          // self is left child of parent
-          @Node(_, _, parent_left, _) => {
-
-            if (node == parent_left)
-            {
-                io::println(fmt!("got it\n"));
-                node
-            }
-            else
-            {
-                io::println(fmt!("keep looking\n"));
-                find_a_leftie(parent)
-            }
-
-          }
-        }
-      }
-    }
-}
-
-
-
-fn find_successor<T: Eq Ord> (node: @MaybeNode<T>) -> @MaybeNode<T> {
-    //if node.right exist, a node's in-order successor is the
-    //left-most child of its right subtree,
-    //
-    //else, find a node that is the left child of its parent OR root
-    //and return that.
-    match node {
-
-      @Node(_, _, _, right) => {
-        match right {
-          // Walk up to find the left child of the parent (or root)
-          @Empty => {
-            find_a_leftie(node)
-          }
-
-          // Walk down the right side of the tree
-          // left-most is the minimum
-          _ => {
-            minimum(right) }
-        }
-      }
-      @Empty => { @Empty }
     }
 }
 
@@ -290,169 +238,18 @@ fn give_me_test_tree () -> @MaybeNode<int> {
 
 
 #[test]
-fn test_successor_empty () {
-    let tree : @MaybeNode<int> = @Empty;
-
-    let newtree = find_successor(tree);
-
-    assert newtree == @Empty
-}
-
-#[test]
-fn test_successor_one () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@20, tree);
-    tree = insert(@30, tree);
-
-    let newtree = find_successor(find(@20, tree));
-
-    assert newtree == @Node(@30, @Empty, @Empty, @Empty)
-}
-
-#[test]
-fn test_successor_double () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@20, tree);
-    tree = insert(@30, tree);
-    tree = insert(@-10, tree);
-
-    let newtree = find_successor(find(@20,tree));
-
-    assert newtree == @Node(@30, @Empty, @Empty, @Empty)
-}
-
-#[test]
-fn test_successor_longer () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@20, tree);
-    tree = insert(@30, tree);
-    tree = insert(@25, tree);
-
-    let newtree = find_successor(find(@20,tree));
-
-    assert newtree == @Node(@25, @Empty, @Empty, @Empty)
-}
-#[test]
-fn test_successor_under_root_one () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@0, tree);
-    tree = insert(@-5, tree);
-    tree = insert(@10, tree);
-
-    let newtree = find_successor(find(@-5,tree));
-
-    assert newtree == @Node(@0, @Empty, @Empty, @Empty)
-}
-
-#[test]
-fn test_successor_under_root_right () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@0, tree);
-    tree = insert(@5, tree);
-    tree = insert(@10, tree);
-
-    let newtree = find_successor(find(@5,tree));
-
-    assert newtree == @Node(@10, @Empty, @Empty, @Empty)
-}
-
-#[test]
-fn test_successor_under_root_left_complex () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@0, tree);
-    tree = insert(@-3, tree);
-    tree = insert(@-7, tree);
-    tree = insert(@-5, tree);
-    tree = insert(@-10, tree);
-    tree = insert(@10, tree);
-
-    let newtree = find_successor(find(@-7,tree));
-
-    assert newtree == @Node(@-5, @Empty, @Empty, @Empty)
-}
-
-fn test_successor_under_root_right_complex () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@0, tree);
-    tree = insert(@-3, tree);
-    tree = insert(@-5, tree);
-    tree = insert(@10, tree);
-    tree = insert(@15, tree);
-    tree = insert(@13, tree);
-
-    let newtree = find_successor(find(@13,tree));
-
-    assert newtree == @Node(@15, @Empty, @Empty, @Empty)
-}
-#[test]
-fn test_successor_under_root_right_leaning () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@0, tree);
-    tree = insert(@-3, tree);
-    tree = insert(@10, tree);
-    tree = insert(@15, tree);
-    tree = insert(@13, tree);
-
-    let newtree = find_successor(find(@-3,tree));
-
-    assert newtree == @Node(@0, @Empty, @Empty, @Empty)
-}
-
-#[test]
-fn test_successor_under_root_all_right () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@0, tree);
-    tree = insert(@3, tree);
-    tree = insert(@10, tree);
-    tree = insert(@13, tree);
-    tree = insert(@15, tree);
-
-
-    let newtree = find_successor(find(@10,tree));
-    //io::println(fmt!("%?\n", newtree));
-    assert node_data(newtree) == Some(@13);
-}
-
-#[test]
-fn test_successor_under_root_all_left () {
-    let mut tree : @MaybeNode<int> = @Empty;
-
-    tree = insert(@0, tree);
-    tree = insert(@-3, tree);
-    tree = insert(@-10, tree);
-    tree = insert(@-13, tree);
-    tree = insert(@-15, tree);
-
-    let newtree = find_successor(find(@-10,tree));
-    io::println(fmt!("I think my data is... %?\n", node_data(newtree)));
-    io::println(fmt!("I think my tree is... %?\n", tree));
-    assert node_data(newtree) == Some(@-3);
-}
-
-
-
-#[test]
 fn check_add_one () {
     let root : @MaybeNode<int> = @Empty;
 
-    let expected : @MaybeNode<int> = @Node(@2, @Empty, @Empty, @Empty);
+    let expected : @MaybeNode<int> = @Node(@2, @Empty, @Empty);
 
     let inserted = insert(@2, root);
 
     match  (expected, inserted) {
       (@Empty, _)  => { fail; }
       (_, @Empty)  => { fail; }
-      (@Node(expected_data, _, _, _),
-       @Node(inserted_data, _, _, _)) => {
+      (@Node(expected_data, _, _),
+       @Node(inserted_data, _, _)) => {
             assert expected_data == inserted_data
       }
     }
@@ -466,39 +263,36 @@ fn check_proper_inserts () {
     // root
     test_tree = insert(@8, test_tree);
 
-    assert test_tree == @Node(@8, @Empty, @Empty, @Empty);
+    assert test_tree == @Node(@8, @Empty, @Empty);
 
     // Right
     test_tree = insert(@11, test_tree);
 
     assert test_tree == @Node(@8,
-                              @Node(@8, @Empty, @Empty, @Empty),
                               @Empty,
-                              @Node(@11, @Empty, @Empty, @Empty));
+                              @Node(@11, @Empty, @Empty));
 
     // Left
     test_tree = insert(@2, test_tree);
 
     assert test_tree == @Node(@8,
-                              @Empty,
-                              @Node(@2, @Empty, @Empty, @Empty),
-                              @Node(@11, @Empty, @Empty, @Empty));
+                              @Node(@2, @Empty, @Empty),
+                              @Node(@11, @Empty, @Empty));
     //And a dupe test
     test_tree = insert(@2, test_tree);
 
     assert test_tree == @Node(@8,
-                              @Empty,
-                              @Node(@2, @Empty, @Empty, @Empty),
-                              @Node(@11, @Empty, @Empty, @Empty));
+                              @Node(@2, @Empty, @Empty),
+                              @Node(@11, @Empty, @Empty));
 
     // And recurse a bit on the left
     test_tree = insert(@3, test_tree);
 
     assert test_tree == @Node(@8,
-                              @Empty,
-                              @Node(@2, @Empty, @Empty,
-                                    @Node(@3, @Empty, @Empty, @Empty)),
-                              @Node(@11, @Empty, @Empty, @Empty));
+                              @Node(@2,
+                                    @Empty,
+                                    @Node(@3, @Empty, @Empty)),
+                              @Node(@11, @Empty, @Empty));
 
 }
 
@@ -512,7 +306,7 @@ fn check_finding_right () {
     let test_tree : @MaybeNode<int> = give_me_test_tree();
     match test_tree
     {
-      @Node(_, _, _, right) =>
+      @Node(_, _, right) =>
       {
         assert find(@11, test_tree) == right
       }
@@ -525,7 +319,7 @@ fn check_finding_left () {
     let test_tree : @MaybeNode<int> = give_me_test_tree();
     match test_tree
     {
-      @Node(_, _, left, _) =>
+      @Node(_, left, _) =>
       {
         assert find(@2, test_tree) == left
       }
@@ -536,9 +330,9 @@ fn check_finding_left () {
 fn check_finding_lower () {
     let test_tree = give_me_test_tree();
     match test_tree {
-      @Node(_, _, left, _) => {
+      @Node(_, left, _) => {
         match left {
-          @Node(_, _, deeper_left, _) => { assert find(@-10, test_tree) == deeper_left }
+          @Node(_, deeper_left, _) => { assert find(@-10, test_tree) == deeper_left }
           _ => { fail(~"Error") }
         }
       }
@@ -564,7 +358,7 @@ fn delete_root () {
     let mut root = @Empty;
     root = insert(@10, root);
     // sanity check
-    assert root == @Node(@10, @Empty, @Empty, @Empty);
+    assert root == @Node(@10, @Empty, @Empty);
 
     root = delete(@10, root);
     // check for correct deletion
@@ -651,12 +445,12 @@ fn delete_single_middle () {
 fn check_eq() {
     let test_tree : @MaybeNode<int> = @Empty;
     let test_tree2 : @MaybeNode<int> = @Empty;
-    let test_tree3 = @Node(@-10, @Empty, @Empty, @Empty);
+    let test_tree3 = @Node(@-10, @Empty, @Empty);
 
     assert test_tree == test_tree2;
     assert test_tree3 == test_tree3;
 
-    let mut test_tree4 = @Node(@-1, @Empty, @Empty, @Empty);
+    let mut test_tree4 = @Node(@-1, @Empty, @Empty);
     test_tree4 = insert(@10, test_tree4);
     test_tree4 = insert(@-10, test_tree4);
     test_tree4 = insert(@20, test_tree4);
@@ -664,7 +458,7 @@ fn check_eq() {
     test_tree4 = insert(@39, test_tree4);
     test_tree4 = insert(@42, test_tree4);
 
-    let mut test_tree5 = @Node(@-1, @Empty, @Empty, @Empty);
+    let mut test_tree5 = @Node(@-1, @Empty, @Empty);
     test_tree5 = insert(@10, test_tree5);
     test_tree5 = insert(@-10, test_tree5);
     test_tree5 = insert(@20, test_tree5);
@@ -679,13 +473,13 @@ fn check_eq() {
 #[test]
 fn check_ne() {
     let test_tree : @MaybeNode<int> = @Empty;
-    let test_tree3 = @Node(@-10, @Empty, @Empty, @Empty);
+    let test_tree3 = @Node(@-10, @Empty, @Empty);
 
     //commute the !-
     assert test_tree3 != test_tree;
     assert test_tree != test_tree3;
 
-    let mut test_tree4 = @Node(@-1, @Empty, @Empty, @Empty);
+    let mut test_tree4 = @Node(@-1, @Empty, @Empty);
     test_tree4 = insert(@10, test_tree4);
     test_tree4 = insert(@-10, test_tree4);
     test_tree4 = insert(@20, test_tree4);
@@ -693,7 +487,7 @@ fn check_ne() {
     test_tree4 = insert(@39, test_tree4);
     test_tree4 = insert(@42, test_tree4);
 
-    let mut test_tree5 = @Node(@-1, @Empty, @Empty, @Empty);
+    let mut test_tree5 = @Node(@-1, @Empty, @Empty);
     test_tree5 = insert(@10, test_tree5);
     test_tree5 = insert(@-10, test_tree5);
     test_tree5 = insert(@20, test_tree5);
@@ -709,14 +503,11 @@ fn check_ne() {
 #[test]
 fn check_parental_ignoring () {
     assert ( @Node(@8,
-                 @Node(@8, @Empty, @Empty, @Empty),
                  @Empty,
-                 @Node(@11, @Empty, @Empty, @Empty)) ==
+                 @Node(@11, @Empty, @Empty)) ==
             @Node(@8,
                   @Empty,
-                  @Empty,
                   @Node(@11,
-                        @Node(@8, @Empty, @Empty, @Empty),
                         @Empty,
                         @Empty)))
 
@@ -767,4 +558,110 @@ fn check_minimum() {
       None => { fail(~"Rong") }
       Some(data) => { assert data == @-50 }
     }
+}
+
+
+#[test]
+fn check_delete_empty () {
+    // empty case
+    let tree : @MaybeNode<int> = @Empty;
+    assert delete(@20, tree) == @Empty;
+}
+#[test]
+fn check_delete_root () {
+    // just a root
+    let tree : @MaybeNode<int> = insert(@20, @Empty);
+    assert delete(@20, tree) == @Empty;
+}
+
+#[test]
+fn check_delete_root_2_kids () {
+    // root and 2 children, delete root
+    let mut tree : @MaybeNode<int> = insert(@20, @Empty);
+    tree = insert(@10, tree);
+    tree = insert(@30, tree);
+    assert node_data(delete(@20, tree)) == Some(@30);
+
+    // construct a tree that should have the same shape
+    let mut compare_tree = insert(@30, @Empty);
+    compare_tree = insert(@10, compare_tree);
+    assert delete(@20, tree) == compare_tree;
+}
+#[test]
+fn check_delete_right_one () {
+    // root and 2 children, delete right child
+    let mut tree : @MaybeNode<int> = insert(@0, @Empty);
+    tree = insert(@-10, tree);
+    tree = insert(@10, tree);
+    // pop off right child.
+    tree = delete(@10, tree);
+
+    let mut compare_tree = insert(@0, @Empty);
+    compare_tree = insert(@-10, compare_tree);
+    assert compare_tree == tree;
+}
+
+#[test]
+fn check_delete_left_one () {
+    // root and 2 children, delete left child
+    let mut tree : @MaybeNode<int> = insert(@0, @Empty);
+    tree = insert(@-10, tree);
+    tree = insert(@10, tree);
+    // pop off left child.
+    tree = delete(@-10, tree);
+
+    let mut compare_tree = insert(@0, @Empty);
+    compare_tree = insert(@10, compare_tree);
+    assert compare_tree == tree;
+}
+#[test]
+fn check_delete_left_chain () {
+    //root and a left child chain
+    let mut tree : @MaybeNode<int> = insert(@0, @Empty);
+    tree = insert(@-10, tree);
+    tree = insert(@-20, tree);
+    tree = insert(@-30, tree);
+
+    tree = delete(@-30, tree);
+
+    let mut compare_tree = insert(@0, @Empty);
+    compare_tree = insert(@-10, compare_tree);
+    compare_tree = insert(@-20, compare_tree);
+
+    assert compare_tree == tree
+}
+
+#[test]
+fn check_delete_right_chain () {
+    // root and a right child chain
+    let mut tree : @MaybeNode<int> = insert(@0, @Empty);
+    tree = insert(@10, tree);
+    tree = insert(@20, tree);
+    tree = insert(@30, tree);
+
+    tree = delete(@30, tree);
+
+    let mut compare_tree = insert(@0, @Empty);
+    compare_tree = insert(@10, compare_tree);
+    compare_tree = insert(@20, compare_tree);
+
+    assert compare_tree == tree
+}
+
+#[test]
+fn check_delete_double () {
+    //check deleting a node IN THE MIDDLE
+    let mut tree : @MaybeNode<int> = insert(@0, @Empty);
+    tree = insert(@10, tree);
+    tree = insert(@20, tree);
+    tree = insert(@15, tree);
+
+
+    tree = delete(@10, tree);
+
+    let mut compare_tree = insert(@0, @Empty);
+    compare_tree = insert(@20, compare_tree);
+    compare_tree = insert(@15, compare_tree);
+
+    assert compare_tree == tree
 }
