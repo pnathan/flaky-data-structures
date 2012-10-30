@@ -2,7 +2,8 @@
 // Happy hacking.
 
 extern mod std;
-use core::cmp::{Eq, Ord};
+//use core::cmp::{Eq, Ord};
+use core::cmp::nounittest::{Eq, Ord};
 use core::rand::{random};
 use core::option;
 /*
@@ -71,55 +72,11 @@ impl<T: Ord Eq> MaybeNode<T>: Eq {
     }
 }
 
+
 fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
     match node {
       @Empty => {None}
       @Node(data, _, _, _) => { Some(data) }
-    }
-}
-
-#[test]
-fn check_minimum() {
-    let mut tree = insert(@20, @Empty);
-    match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @20 }
-    }
-
-    let mut tree = insert(@20, @Empty);
-    tree = insert(@30, tree);
-    tree = insert(@40, tree);
-    match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @20 }
-    }
-    // this setup segfaults!
-    let mut tree = insert(@0, @Empty);
-    tree = insert(@-10, tree);
-    tree = insert(@10, tree);
-    tree = insert(@11, tree);
-    tree = insert(@5, tree);
-    tree = insert(@1, tree);
-    tree = insert(@-20, tree);
-    tree = insert(@-15, tree);
-
-    match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @-20 }
-    }
-
-    tree = insert(@-21, tree);
-
-    match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-  Some(data) => { assert data == @-21 }
-}
-    tree = insert(@-50, tree);
-    tree = insert(@-40, tree);
-    tree = insert(@-42, tree);
-    match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @-50 }
     }
 }
 
@@ -171,6 +128,7 @@ fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> 
       }
     }
 }
+
 
 fn insert<T: Eq Ord> (newdata: @T,
                       node: @MaybeNode<T>) -> @MaybeNode<T> {
@@ -238,12 +196,60 @@ fn maximum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
       @Empty => { node }
     }
 }
-fn find_successor<T: Eq> (node: @MaybeNode<T>) -> @MaybeNode<T> {
-    //a node's in-order successor is the left-most child of its right subtree,
-    let _ = node;               //shut up the errors.
+
+fn find_a_leftie<T: Eq Ord>(node: @MaybeNode<T>) -> @MaybeNode<T> {
     match node {
-      @Node(_, _, left, _) => {
-        minimum(left)
+      @Empty => { @Empty }
+      @Node(data, parent, _, _) => {
+        io::println(fmt!("walking up... %?\n", data));
+        match parent  {
+          // root case, at which point ret
+          @Empty => {
+            io::println(fmt!("root!\n"));
+            node
+          }
+          // self is left child of parent
+          @Node(_, _, parent_left, _) => {
+
+            if (node == parent_left)
+            {
+                io::println(fmt!("got it\n"));
+                node
+            }
+            else
+            {
+                io::println(fmt!("keep looking\n"));
+                find_a_leftie(parent)
+            }
+
+          }
+        }
+      }
+    }
+}
+
+
+
+fn find_successor<T: Eq Ord> (node: @MaybeNode<T>) -> @MaybeNode<T> {
+    //if node.right exist, a node's in-order successor is the
+    //left-most child of its right subtree,
+    //
+    //else, find a node that is the left child of its parent OR root
+    //and return that.
+    match node {
+
+      @Node(_, _, _, right) => {
+        match right {
+          // Walk up to find the left child of the parent (or root)
+          @Empty => {
+            find_a_leftie(node)
+          }
+
+          // Walk down the right side of the tree
+          // left-most is the minimum
+          _ => {
+            minimum(right) }
+        }
       }
       @Empty => { @Empty }
     }
@@ -299,7 +305,7 @@ fn test_successor_one () {
     tree = insert(@20, tree);
     tree = insert(@30, tree);
 
-    let newtree = find_successor(tree);
+    let newtree = find_successor(find(@20, tree));
 
     assert newtree == @Node(@30, @Empty, @Empty, @Empty)
 }
@@ -312,7 +318,7 @@ fn test_successor_double () {
     tree = insert(@30, tree);
     tree = insert(@-10, tree);
 
-    let newtree = find_successor(tree);
+    let newtree = find_successor(find(@20,tree));
 
     assert newtree == @Node(@30, @Empty, @Empty, @Empty)
 }
@@ -325,10 +331,113 @@ fn test_successor_longer () {
     tree = insert(@30, tree);
     tree = insert(@25, tree);
 
-    let newtree = find_successor(tree);
+    let newtree = find_successor(find(@20,tree));
 
     assert newtree == @Node(@25, @Empty, @Empty, @Empty)
 }
+#[test]
+fn test_successor_under_root_one () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@0, tree);
+    tree = insert(@-5, tree);
+    tree = insert(@10, tree);
+
+    let newtree = find_successor(find(@-5,tree));
+
+    assert newtree == @Node(@0, @Empty, @Empty, @Empty)
+}
+
+#[test]
+fn test_successor_under_root_right () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@0, tree);
+    tree = insert(@5, tree);
+    tree = insert(@10, tree);
+
+    let newtree = find_successor(find(@5,tree));
+
+    assert newtree == @Node(@10, @Empty, @Empty, @Empty)
+}
+
+#[test]
+fn test_successor_under_root_left_complex () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@0, tree);
+    tree = insert(@-3, tree);
+    tree = insert(@-7, tree);
+    tree = insert(@-5, tree);
+    tree = insert(@-10, tree);
+    tree = insert(@10, tree);
+
+    let newtree = find_successor(find(@-7,tree));
+
+    assert newtree == @Node(@-5, @Empty, @Empty, @Empty)
+}
+
+fn test_successor_under_root_right_complex () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@0, tree);
+    tree = insert(@-3, tree);
+    tree = insert(@-5, tree);
+    tree = insert(@10, tree);
+    tree = insert(@15, tree);
+    tree = insert(@13, tree);
+
+    let newtree = find_successor(find(@13,tree));
+
+    assert newtree == @Node(@15, @Empty, @Empty, @Empty)
+}
+#[test]
+fn test_successor_under_root_right_leaning () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@0, tree);
+    tree = insert(@-3, tree);
+    tree = insert(@10, tree);
+    tree = insert(@15, tree);
+    tree = insert(@13, tree);
+
+    let newtree = find_successor(find(@-3,tree));
+
+    assert newtree == @Node(@0, @Empty, @Empty, @Empty)
+}
+
+#[test]
+fn test_successor_under_root_all_right () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@0, tree);
+    tree = insert(@3, tree);
+    tree = insert(@10, tree);
+    tree = insert(@13, tree);
+    tree = insert(@15, tree);
+
+
+    let newtree = find_successor(find(@10,tree));
+    //io::println(fmt!("%?\n", newtree));
+    assert node_data(newtree) == Some(@13);
+}
+
+#[test]
+fn test_successor_under_root_all_left () {
+    let mut tree : @MaybeNode<int> = @Empty;
+
+    tree = insert(@0, tree);
+    tree = insert(@-3, tree);
+    tree = insert(@-10, tree);
+    tree = insert(@-13, tree);
+    tree = insert(@-15, tree);
+
+    let newtree = find_successor(find(@-10,tree));
+    io::println(fmt!("I think my data is... %?\n", node_data(newtree)));
+    io::println(fmt!("I think my tree is... %?\n", tree));
+    assert node_data(newtree) == Some(@-3);
+}
+
 
 
 #[test]
@@ -611,4 +720,51 @@ fn check_parental_ignoring () {
                         @Empty,
                         @Empty)))
 
+}
+
+
+
+#[test]
+fn check_minimum() {
+    let mut tree = insert(@20, @Empty);
+    match node_data(minimum(tree)) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @20 }
+    }
+
+    let mut tree = insert(@20, @Empty);
+    tree = insert(@30, tree);
+    tree = insert(@40, tree);
+    match node_data(minimum(tree)) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @20 }
+    }
+    // this setup segfaults!
+    let mut tree = insert(@0, @Empty);
+    tree = insert(@-10, tree);
+    tree = insert(@10, tree);
+    tree = insert(@11, tree);
+    tree = insert(@5, tree);
+    tree = insert(@1, tree);
+    tree = insert(@-20, tree);
+    tree = insert(@-15, tree);
+
+    match node_data(minimum(tree)) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @-20 }
+    }
+
+    tree = insert(@-21, tree);
+
+    match node_data(minimum(tree)) {
+      None => { fail(~"Rong") }
+  Some(data) => { assert data == @-21 }
+}
+    tree = insert(@-50, tree);
+    tree = insert(@-40, tree);
+    tree = insert(@-42, tree);
+    match node_data(minimum(tree)) {
+      None => { fail(~"Rong") }
+      Some(data) => { assert data == @-50 }
+    }
 }
