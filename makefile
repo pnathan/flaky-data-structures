@@ -1,14 +1,15 @@
 all: run_test
-run: run_usual run_test
 
-run_test: test
-	./tree_test
+build:
+	rustc --lib structures.rc
 
-run_usual: usual
-	./tree
 
-usual: tree.rs
-	rustc tree.rs -o tree
+run_test: test_bst test_llrb
 
-test: tree.rs
-	rustc --test tree.rs -o tree_test
+test_llrb: trees/llrb.rs
+	rustc --test trees/llrb.rs -o trees/test_llrb
+	./trees/test_llrb
+
+test_bst: trees/bst.rs
+	rustc --test trees/bst.rs -o trees/test_bst
+	./trees/test_bst

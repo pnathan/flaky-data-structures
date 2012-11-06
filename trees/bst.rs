@@ -1,37 +1,14 @@
-// tree.rs.
 // Happy hacking.
 
 extern mod std;
-//use core::cmp::{Eq, Ord};
-use core::cmp::nounittest::{Eq, Ord};
-use core::rand::{random};
+use core::cmp::{Eq, Ord};
 use core::option;
-/*
-
-pcwalton is looking for a doubly-linked tree
-
-parent; first child; last child; next sibling; prev sibling
-
-operations are: add as first child; add as last child; insert before some child; remove from tree
-*/
-struct Node<T> {
-    data: T,
-    parent: Option<@Node<T>>,
-    first_child: Option<@Node<T>>,
-    last_child: Option<@Node<T>>,
-    next_sibling: Option<@Node<T>>,
-    prev_sibling: Option<@Node<T>>
-}
-
-trait DoublyLinkedNode<T> {
-    fn push_first_child<T>(@Node<T>) -> @Node<T>;
-}
 
 /*
 Initial exploration: Pure functional data structures
 */
 // A binary tree node.
-enum MaybeNode<T>
+pub enum MaybeNode<T>
 {
     Empty,
     // Data, left, right
@@ -69,7 +46,7 @@ impl<T: Ord Eq> MaybeNode<T>: Eq {
 }
 
 
-fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
+pub fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
     match node {
       @Empty => {None}
       @Node(data, _, _) => { Some(data) }
@@ -78,7 +55,7 @@ fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
 
 
 // Pure functional delete
-fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> {
+pub fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> {
     //io::println(fmt!("%?\n", node));
     match node {
       @Empty => { @Empty }
@@ -138,13 +115,8 @@ fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> 
 }
 
 
-fn insert<T: Eq Ord> (newdata: @T,
-                      node: @MaybeNode<T>) -> @MaybeNode<T> {
-    insert_under(newdata, node)
-}
-
-fn insert_under<T: Eq Ord> (newdata: @T,
-                      node: @MaybeNode<T>) -> @MaybeNode<T> {
+pub fn insert<T: Eq Ord> (newdata: @T,
+                          node: @MaybeNode<T>) -> @MaybeNode<T> {
     let result = @match node {
       @Empty => {
         Node(newdata,@Empty, @Empty)
@@ -155,10 +127,10 @@ fn insert_under<T: Eq Ord> (newdata: @T,
             Node(data, left, right)
         }
         else if ( data > newdata ) {
-            Node(data, insert_under(newdata, left), right)
+            Node(data, insert(newdata, left), right)
         }
         else {
-            Node(data, left, insert_under(newdata, right))
+            Node(data, left, insert(newdata, right))
         }
       }
     };
@@ -167,7 +139,7 @@ fn insert_under<T: Eq Ord> (newdata: @T,
 }
 
 
-fn find<T: Eq Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
+pub fn find<T: Eq Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
     @match root {
       @Empty => {
         return @Empty;
@@ -180,7 +152,7 @@ fn find<T: Eq Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
     }
 }
 
-fn minimum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
+pub fn minimum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
     match node {
       @Node(_, left, _) => {
         // walk down one level
@@ -194,7 +166,7 @@ fn minimum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
 }
 
 
-fn maximum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
+pub fn maximum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
     match node {
       @Node(_, _, right) => {
         maximum(right)
@@ -203,22 +175,6 @@ fn maximum<T>(node: @MaybeNode<T>) -> @MaybeNode<T> {
     }
 }
 
-
-fn main() {
-
-    //let mut root = insert(@10, @Empty);
-    //root = insert(@30, root);
-
-    let mut other = insert(@10, @Empty);
-    other = insert(@30, other);
-    other = insert(@40, other);
-
-    delete(@40, other);
-
-//    io::println(fmt!("%?", other));
-//    io::println(fmt!("%?", root));
-
-}
 
 //////////////////////////////////////////////////////////////////////
 // Tests

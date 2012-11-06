@@ -1,0 +1,19 @@
+/*
+Structures.rc
+Crate file for the library
+*/
+
+#[link(name = "structures", vers = "0.1", author = "pdn")];
+#[crate_type = "lib"];
+
+mod trees
+{
+    mod bst;
+    mod llrb;
+    mod dbl_linked;
+}
+
+mod linear
+{
+    mod circular;
+}
