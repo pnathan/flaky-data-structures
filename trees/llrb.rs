@@ -14,7 +14,24 @@ enum LLRB_Node<T>
 
 }
 
-fn insert_llrb<T: Eq Ord> (newdata: @T, node: @LLRB_Node<T>) -> @LLRB_Node<T>
+impl<T: Ord Eq> LLRB_Node<T>: Eq {
+    pure fn eq  (other: &LLRB_Node<T>) -> bool {
+
+    }
+    pure fn ne (other: &LLRB_Node<T>) -> bool {
+        ! self.eq(other)
+    }
+}
+
+fn insert<T: Eq Ord> (newdata: @T, node: @LLRB_Node<T>) -> @LLRB_Node<T>
 {
     return @Leaf
+}
+
+
+#[test]
+fn test_root_creation () {
+    let tree : @LLRB_Node<int> = insert(@10, @Leaf);
+
+    assert tree == @Leaf
 }
