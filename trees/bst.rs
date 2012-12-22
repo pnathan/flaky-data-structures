@@ -18,12 +18,12 @@ pub enum MaybeNode<T>
 
 impl<T: Ord Eq> MaybeNode<T>: Eq {
 
-    pure fn eq(other: &MaybeNode<T>)-> bool {
+    pure fn eq(&self, other: &MaybeNode<T>)-> bool {
         match (self, other) {
-          ( Empty, &Empty ) => { true }
-          ( Empty, _ )  => { false }
-          ( Node(_, _, _), &Empty ) => { false }
-          ( Node(selfdata, selfLeft, selfRight),
+          ( &Empty, &Empty ) => { true }
+          ( &Empty, _ )  => { false }
+          ( &Node(_, _, _), &Empty ) => { false }
+          ( &Node(selfdata, selfLeft, selfRight),
            &Node(otherdata,otherLeft, otherRight) ) => {
             if (selfdata == otherdata) {
 
@@ -40,7 +40,7 @@ impl<T: Ord Eq> MaybeNode<T>: Eq {
         }
     }
 
-    pure fn ne(other: &MaybeNode<T>)-> bool {
+    pure fn ne(&self, other: &MaybeNode<T>)-> bool {
         ! self.eq(other)
     }
 }
