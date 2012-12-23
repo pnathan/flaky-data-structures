@@ -1,13 +1,27 @@
 flaky data structures
 ---
-an exploration into data structures with Mozilla Rust
+*an exploration into data structures with Mozilla Rust*
 
 Strong elements of Okasaki's Purely Functional Data Structures are
 be here.
 
-currently: 
+
+Note:
+
+Without apology, this library is flaky, both punny and
+practically. The API will change. Traits, which will formalize the
+interfaces for data structures here, are not implemented yet.
+
+---
+
+currently:
 
 binary search trees
+
+under construction:
+
+linear data structures: list queue deque, along with intrusive
+variants of same.
 
 planned:
 
@@ -25,23 +39,19 @@ better standard rope
 
 cuckoo hash table: https://en.wikipedia.org/wiki/Cuckoo_hashing
 
-todo:
-
-turn it into a rust package
-
 motivation:
 
 Mozilla Rust is slightly unique and interesting in that it provides a
-controllable GC as well as a controllable mutability model. it's optionally 
-impure. Kind of cool. 
+controllable GC as well as a controllable mutability model. it's optionally
+impure. Kind of cool.
 
-rust devs would like some refreshed data structures: 
+rust devs would like some refreshed data structures:
 
 http://irclog.gr/#browse/irc.mozilla.org/rust/291715
 
 
-happy hacking.
-
+I would be glad to take any contributions. Happy hacking to anyone who
+wants to throw a bone out; note the license.
 
 
 License:
