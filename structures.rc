@@ -15,5 +15,6 @@ pub mod trees
 
 pub mod linear
 {
-     mod circular;
+    mod circular;
+    mod linear;
 }
