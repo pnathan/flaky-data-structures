@@ -23,18 +23,18 @@ use core::option;
 
 // General container trait.
 trait Container<T> {
-    fn size<T> (cont: @self) -> u64;
+    fn size(cont: @self) -> u64;
 }
 
 trait List<T> {
-    fn head<T>(seq: @self) -> Option<@T>;
-    fn length<T> (seq: @self) -> u64;
+    fn head(seq: @self) -> Option<@T>;
+    fn length(seq: @self) -> u64;
 }
 
 // A queue, which also is a kind of list
 trait Queue<T> : List<T>{
-    fn peek<T> (seq: @self) -> Option<@T>;
-    fn pop<T> (seq: @self) -> (Option<@T>, @self);
+    fn peek(seq: @self) -> Option<@T>;
+    fn pop(seq: @self) -> (Option<@T>, @self);
 }
 
 
@@ -47,7 +47,7 @@ pub enum List_Data<T> {
 
 
 impl<T> List_Data<T>: List<T> {
-    fn head<T> (list: @List_Data<T>) -> Option<T> {
+    fn head(list: @List_Data<T>) -> Option<@T> {
         match (list)  {
           @Nil => {
             None
@@ -57,7 +57,7 @@ impl<T> List_Data<T>: List<T> {
           }
         }
     }
-    fn length<T>(list: @List_Data<T>) -> u64 {
+    fn length(list: @List_Data<T>) -> u64 {
         0
     }
 
@@ -65,7 +65,7 @@ impl<T> List_Data<T>: List<T> {
 
 // A list implements the container traits
 impl<T> List_Data<T>: Container<T> {
-    fn size<T> (cont: @List_Data<T>) -> u64 {
+    fn size (cont: @List_Data<T>) -> u64 {
         0
     }
 }
@@ -73,13 +73,13 @@ impl<T> List_Data<T>: Container<T> {
 // And it also implements the queue traits
 impl<T> List_Data<T>: Queue<T> {
 
-    fn peek<T>(list : @List_Data<T>) -> Option<@T> {
+    fn peek(list : @List_Data<T>) -> Option<@T> {
         None
         // head
         //head(list)
     }
 
-    fn pop<T>(list : @List_Data<T>) -> (Option<@T>, @List<@T>) {
+    fn pop(list : @List_Data<T>) -> (Option<@T>, @List_Data<T>) {
         (None, @Nil)
     }
 }
