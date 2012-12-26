@@ -23,45 +23,67 @@ use core::option;
 
 // General container trait.
 trait Container<T> {
-    fn size<T> (cont: Container<T>) -> u64;
+    fn size<T> (cont: @self) -> u64;
 }
 
-// A queue trait
-trait Queue<T> {
-    fn length<T> (seq: @Container<T>) -> u64;
-    fn peek<T> (seq: @Container<T>) -> Option<@T>;
-    fn pop<T> (seq: @Container<T>) -> (Option<@T>, @Container<T>);
+trait List<T> {
+    fn head<T>(seq: @self) -> Option<@T>;
+    fn length<T> (seq: @self) -> u64;
 }
+
+// A queue, which also is a kind of list
+trait Queue<T> : List<T>{
+    fn peek<T> (seq: @self) -> Option<@T>;
+    fn pop<T> (seq: @self) -> (Option<@T>, @self);
+}
+
 
 
 #[deriving_eq]
-pub enum List<T> {
+pub enum List_Data<T> {
     Nil,
-    Cons(@T, @List<T>)
+    Cons(@T, @List_Data<T>)
 }
 
 
-// A list implements the container traits
-impl<T> List<T>: Container<T> {
-    fn size<T> (cont: @List<T>) -> u64 {
-        return length(cont)
+impl<T> List_Data<T>: List<T> {
+    fn head<T> (list: @List_Data<T>) -> Option<T> {
+        match (list)  {
+          @Nil => {
+            None
+          }
+          @Cons(e, _) => {
+            Some(e)
+          }
+        }
     }
-}
-// And it also implements the queue traits
-impl<T> List<T>: Queue<T> {
-    fn length<T>(list: @List<T>) -> u64 {
+    fn length<T>(list: @List_Data<T>) -> u64 {
         0
     }
 
-    fn peek<T>(list : @List<T>) -> Option<@T> {
-        head(list)
-    }
+}
 
-    fn pop<T>(list : @List<T>) -> (Option<@T>, @List<@T>) {
-        (None, @Nil)
+// A list implements the container traits
+impl<T> List_Data<T>: Container<T> {
+    fn size<T> (cont: @List_Data<T>) -> u64 {
+        0
     }
 }
 
+// And it also implements the queue traits
+impl<T> List_Data<T>: Queue<T> {
+
+    fn peek<T>(list : @List_Data<T>) -> Option<@T> {
+        None
+        // head
+        //head(list)
+    }
+
+    fn pop<T>(list : @List_Data<T>) -> (Option<@T>, @List<@T>) {
+        (None, @Nil)
+    }
+}
+/*
 
 pub fn head<T>(list: @List<T>) -> Option<@T> {
     // Unsure about rustc's optimization. The alternative would be:
@@ -192,3 +214,4 @@ fn check_elt() {
     assert elt(three_long, -1) == None;
     assert elt(three_long, 4) == None;
 }
+*/
