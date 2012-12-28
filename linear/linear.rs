@@ -20,23 +20,37 @@ also plays well with the pure functional approach.
 
 extern mod std;
 use core::option;
+use core::cmp::{Eq, Ord};
 
 // General container trait.
 trait Container<T> {
+    // size of the container
     fn size(cont: @self) -> u64;
+    // delete the data from cont and return a "new" self. Old self
+    // unaffected.
+    fn delete(&self, data: @T) -> @self;
 }
 
 // A List; classic abstract datatype for a List
 trait List<T> {
-    fn head(&self) -> Option<@T>;
+    // first element
+    fn first(&self) -> Option<@T>;
+    // non-first elements
+    fn rest(&self) -> @self;
+    // length of the list
     fn length(&self) -> u64;
-    fn cons(data: @T, seq: @self) -> @self;
+    // index into the list
     fn elt(&self, idx: u64) -> Option<@T>;
+    //append other to self and return the new list, original lists
+    //unmodified
+    fn append(&self, @self) -> @self;
 }
 
 // A queue, which also is a kind of list
 trait Queue<T> : List<T>{
+    // check the first element
     fn peek(seq: @self) -> Option<@T>;
+    // get the first element and return the new list without the first element
     fn pop(seq: @self) -> (Option<@T>, @self);
 }
 
@@ -50,7 +64,13 @@ pub enum List_Data<T> {
     Cons(@T, @List_Data<T>)
 }
 
+// cons up an element to a list; this provides a functional (non foo.cons() )
+// interface.
+pub fn cons<T> (data: @T, seq : @List_Data<T>) -> @List_Data<T> {
+    @Cons(data, seq)
+}
 
+// Convert from a vector to a linked list
 pub fn from_vec<T: Copy>(v: &[T]) -> @List_Data<T> {
     let mut accum = @Nil::<T>;
     let len = v.len();
@@ -64,16 +84,36 @@ pub fn from_vec<T: Copy>(v: &[T]) -> @List_Data<T> {
 }
 
 impl<T> List_Data<T>: List<T> {
-    fn cons(data: @T, list: @List_Data<T>) -> @List_Data<T> {
-        @Cons(data, list)
-    }
-    fn head(&self) -> Option<@T> {
+
+    fn first(&self) -> Option<@T> {
         match (self)  {
           &Nil => {
             None
           }
           &Cons(e, _) => {
             Some(e)
+          }
+        }
+    }
+
+    fn rest(&self) -> @List_Data<T> {
+        match(self) {
+          &Nil => {
+            @Nil
+          }
+          &Cons(_, rest) => {
+            rest
+          }
+        }
+    }
+
+    fn append(&self, other: @List_Data<T>) -> @List_Data<T> {
+        match (self) {
+          &Nil => {
+            other
+          }
+          &Cons(e, rest) => {
+            cons(e, rest.append(other))
           }
         }
     }
@@ -115,9 +155,25 @@ impl<T> List_Data<T>: List<T> {
 }
 
 // A list implements the container traits
-impl<T> List_Data<T>: Container<T> {
+impl<T : Eq> List_Data<T>: Container<T> {
     fn size (seq: @List_Data<T>) -> u64 {
         seq.length()
+    }
+    fn delete (&self, data: @T) -> @List_Data<T> {
+        match(self) {
+          &Nil => {
+            @Nil
+          }
+          &Cons(e, rest) => {
+            if (e == data) {
+                rest
+            }
+            else {
+                cons(e, rest.delete(data))
+            }
+
+          }
+        }
     }
 }
 
@@ -125,62 +181,18 @@ impl<T> List_Data<T>: Container<T> {
 impl<T> List_Data<T>: Queue<T> {
 
     fn peek(list : @List_Data<T>) -> Option<@T> {
-        list.head()
+        list.first()
     }
 
     // Returns the first element, along with a list that doesn't have
     // the first element.
     fn pop(list : @List_Data<T>) -> (Option<@T>, @List_Data<T>) {
-        (None, list)
+        let start = list.first();
+        let others = list.rest();
+        return (start, others)
     }
 }
 /*
-
-pub fn head<T>(list: @List<T>) -> Option<@T> {
-    // Unsure about rustc's optimization. The alternative would be:
-    // elt(list, 0)
-
-    match (list)  {
-      @Nil => {
-        None
-      }
-      @Cons(e, _) => {
-        Some(e)
-      }
-    }
-}
-
-pub fn rest<T>(list: @List<T>) -> @List<T> {
-    match (list)  {
-      @Nil => {
-        @Nil
-      }
-      @Cons(_, rest) => {
-        rest
-      }
-    }
-}
-
-pub fn append<T>(list1: @List<T>, list2: @List<T>) -> @List<T>{
-    match (list1) {
-      @Nil => { list2 }
-      @Cons(e, rest) => { cons(e, append(rest, list2)) }
-    }
-}
-
-
-pub fn length<T>(list: @List<T>) -> u64 {
-    match (list)
-    {
-      @Nil => {
-        0
-      }
-      @Cons(_, rest) => {
-        length(rest) + 1
-      }
-    }
-}
-
 
 pub fn delete<T>(list: @List<T>, idx: u64) -> @List<T> {
     delete_direct(list, idx, 0)
@@ -202,33 +214,36 @@ fn delete_direct<T>(list: @List<T>, idx: u64, counter: u64) -> @List<T> {
 //////////////////////////////////////////////////////////////////////
 // Tests for the normal list
 */
-
 #[test]
 fn check_cons() {
     let nilly : @List_Data<u64> = @Nil;
     let list : @List_Data<u64> = @Cons(@10, @Nil::<u64>);
-    let otherlist : @List_Data<u64> = Nil.cons(@10, nilly);
+    let otherlist : @List_Data<u64> = cons(@10, nilly);
     assert list == otherlist;
 }
 
-/*
+#[test]
+fn check_append() {
+    let three_long : @List_Data<u64> = from_vec([10, 20, 30]);
+    let three_long2 : @List_Data<u64> = from_vec([40, 50, 60]);
+
+    assert three_long.append(three_long2) == from_vec([10, 20,30,40,50,60])
+}
+
 #[test]
 fn check_delete() {
-    assert delete(@Cons(@10, @Nil), 0) ==  @Nil;
     let three_long = cons(@10, cons(@20, cons(@30, @Nil)));
 
-    assert delete(three_long, 0) ==  cons(@20, cons(@30, @Nil));
+    assert three_long.delete(@10) == cons(@20, cons(@30, @Nil));
 
-    // non-mutating
+    // verify non-mutating
     assert three_long == cons(@10, cons(@20, cons(@30, @Nil)));
 }
-*/
 
 #[test]
-fn check_head() {
-// is the head still attached?
+fn check_first() {
     let three_long : @List_Data<u64> = from_vec([10, 20, 30]);
-    assert three_long.head() == Some(@10)
+    assert three_long.first() == Some(@10)
 
 }
 #[test]
