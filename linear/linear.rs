@@ -16,7 +16,7 @@ largely because I (pnathan) got stuck on a typing error and chose to
 make the code work rather then investing the time to fix the error. It
 also plays well with the pure functional approach.
 
- */
+*/
 
 extern mod std;
 use core::option;
@@ -26,9 +26,12 @@ trait Container<T> {
     fn size(cont: @self) -> u64;
 }
 
+// A List; classic abstract datatype for a List
 trait List<T> {
-    fn head(seq: @self) -> Option<@T>;
-    fn length(seq: @self) -> u64;
+    fn head(&self) -> Option<@T>;
+    fn length(&self) -> u64;
+    fn cons(data: @T, seq: @self) -> @self;
+    fn elt(&self, idx: u64) -> Option<@T>;
 }
 
 // A queue, which also is a kind of list
@@ -38,7 +41,9 @@ trait Queue<T> : List<T>{
 }
 
 
-
+/*
+My implementation of a List, concretized into an enum.
+*/
 #[deriving_eq]
 pub enum List_Data<T> {
     Nil,
@@ -46,27 +51,73 @@ pub enum List_Data<T> {
 }
 
 
+pub fn from_vec<T: Copy>(v: &[T]) -> @List_Data<T> {
+    let mut accum = @Nil::<T>;
+    let len = v.len();
+    let mut i : uint = len - 1;
+
+    while (i < len)  {
+        accum = @Cons(@v[i], accum);
+        i -= 1;
+    }
+    return accum
+}
+
 impl<T> List_Data<T>: List<T> {
-    fn head(list: @List_Data<T>) -> Option<@T> {
-        match (list)  {
-          @Nil => {
+    fn cons(data: @T, list: @List_Data<T>) -> @List_Data<T> {
+        @Cons(data, list)
+    }
+    fn head(&self) -> Option<@T> {
+        match (self)  {
+          &Nil => {
             None
           }
-          @Cons(e, _) => {
+          &Cons(e, _) => {
             Some(e)
           }
         }
     }
-    fn length(list: @List_Data<T>) -> u64 {
-        0
+
+    fn elt(&self, idx: u64) -> Option<@T> {
+        let mut counter : u64 = 0;
+        let mut temp : @List_Data<T> = @*self;
+
+        let mut retval = None;
+        while counter <= idx {
+            match(temp) {
+              @Nil => {
+                break;
+              }
+              @Cons(e, rest) => {
+                if (counter == idx) {
+                    return Some(e)
+                }
+                else {
+                    temp = rest;
+                }
+              }
+            }
+            counter += 1;
+        }
+        return retval
     }
 
+    fn length(&self) -> u64 {
+        match (self) {
+          &Nil => {
+            0
+          }
+          &Cons(_, rest) => {
+            rest.length() + 1
+          }
+        }
+    }
 }
 
 // A list implements the container traits
 impl<T> List_Data<T>: Container<T> {
-    fn size (cont: @List_Data<T>) -> u64 {
-        0
+    fn size (seq: @List_Data<T>) -> u64 {
+        seq.length()
     }
 }
 
@@ -74,13 +125,13 @@ impl<T> List_Data<T>: Container<T> {
 impl<T> List_Data<T>: Queue<T> {
 
     fn peek(list : @List_Data<T>) -> Option<@T> {
-        None
-        // head
-        //head(list)
+        list.head()
     }
 
+    // Returns the first element, along with a list that doesn't have
+    // the first element.
     fn pop(list : @List_Data<T>) -> (Option<@T>, @List_Data<T>) {
-        (None, @Nil)
+        (None, list)
     }
 }
 /*
@@ -110,34 +161,10 @@ pub fn rest<T>(list: @List<T>) -> @List<T> {
     }
 }
 
-pub fn cons<T>(e: @T, list: @List<T>) -> @List<T> {
-    @Cons(e, list)
-}
-
 pub fn append<T>(list1: @List<T>, list2: @List<T>) -> @List<T>{
     match (list1) {
       @Nil => { list2 }
       @Cons(e, rest) => { cons(e, append(rest, list2)) }
-    }
-}
-
-
-pub fn elt<T>(list: @List<T>, idx: u64) -> Option<@T> {
-    elt_direct(list, idx, 0)
-}
-
-// tail recursive
-fn elt_direct<T>(list: @List<T>, idx: u64, counter: u64) -> Option<@T> {
-    match(list) {
-      @Nil => {None}
-      @Cons(e, rest) => {
-        if (counter == idx) {
-            Some(e)
-        }
-        else {
-            elt_direct(rest, idx, counter + 1)
-        }
-      }
     }
 }
 
@@ -174,6 +201,17 @@ fn delete_direct<T>(list: @List<T>, idx: u64, counter: u64) -> @List<T> {
 
 //////////////////////////////////////////////////////////////////////
 // Tests for the normal list
+*/
+
+#[test]
+fn check_cons() {
+    let nilly : @List_Data<u64> = @Nil;
+    let list : @List_Data<u64> = @Cons(@10, @Nil::<u64>);
+    let otherlist : @List_Data<u64> = Nil.cons(@10, nilly);
+    assert list == otherlist;
+}
+
+/*
 #[test]
 fn check_delete() {
     assert delete(@Cons(@10, @Nil), 0) ==  @Nil;
@@ -184,34 +222,35 @@ fn check_delete() {
     // non-mutating
     assert three_long == cons(@10, cons(@20, cons(@30, @Nil)));
 }
-#[test]
-fn check_cons() {
-    assert @Cons(@10, @Nil) == cons(@10, @Nil)
-}
+*/
 
 #[test]
+fn check_head() {
+// is the head still attached?
+    let three_long : @List_Data<u64> = from_vec([10, 20, 30]);
+    assert three_long.head() == Some(@10)
+
+}
+#[test]
 fn check_len() {
-    let three_long = cons(@10, cons(@20, cons(@30, @Nil)));
-    let mut len : u64 = length(three_long);
+    let three_long : @List_Data<u64> = from_vec([10, 20, 30]);
+    let mut len : u64 = three_long.length();
 
     assert len == 3;
 
-    let list : @List<u64> = @Nil;
-    len = length(list);
+    let list : @List_Data<u64> = @Nil::<u64>;
+    len = list.length();
 
     assert len == 0;
 }
-
 #[test]
 fn check_elt() {
-    let three_long = cons(@10, cons(@20, cons(@30, @Nil)));
+    let three_long : @List_Data<u64> = from_vec([10, 20, 30]);
 
+    assert three_long.elt(0) == Some(@10);
+    assert three_long.elt(1) == Some(@20);
+    assert three_long.elt(2) == Some(@30);
 
-    assert elt(three_long, 0) == Some(@10);
-    assert elt(three_long, 1) == Some(@20);
-    assert elt(three_long, 2) == Some(@30);
-
-    assert elt(three_long, -1) == None;
-    assert elt(three_long, 4) == None;
+    assert three_long.elt(-1) == None;
+    assert three_long.elt(4) == None;
 }
-*/
