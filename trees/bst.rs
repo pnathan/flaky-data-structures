@@ -1,48 +1,16 @@
 // Happy hacking.
 
-extern mod std;
-use core::cmp::{Eq, Ord};
-use core::option;
 
 /*
 Initial exploration: Pure functional data structures
 */
 // A binary tree node.
+#[deriving(Eq)]
 pub enum MaybeNode<T>
 {
     Empty,
     // Data, left, right
     Node(@T, @MaybeNode<T>, @MaybeNode<T>)
-}
-
-
-impl<T: Ord Eq> MaybeNode<T>: Eq {
-
-    pure fn eq(&self, other: &MaybeNode<T>)-> bool {
-        match (self, other) {
-          ( &Empty, &Empty ) => { true }
-          ( &Empty, _ )  => { false }
-          ( &Node(_, _, _), &Empty ) => { false }
-          ( &Node(selfdata, selfLeft, selfRight),
-           &Node(otherdata,otherLeft, otherRight) ) => {
-            if (selfdata == otherdata) {
-
-                // Note that this kicks out the equality question to
-                // T's specification. If that happens to be a
-                // MaybeNode, we just recurse and have done with
-                // it. :-)
-                return (true
-                        && (selfLeft == otherLeft)
-                        && (selfRight == otherRight))
-            }
-            else { false }
-          }
-        }
-    }
-
-    pure fn ne(&self, other: &MaybeNode<T>)-> bool {
-        ! self.eq(other)
-    }
 }
 
 
@@ -55,7 +23,7 @@ pub fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
 
 
 // Pure functional delete
-pub fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> {
+pub fn delete<T: Eq + Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> {
     //io::println(fmt!("%?\n", node));
     match node {
       @Empty => { @Empty }
@@ -73,7 +41,7 @@ pub fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode
                 let child_node =
                     if       (left != @Empty) { left  }
                     else if (right != @Empty) { right }
-                    else { fail(~"Error: invalid"); };
+                    else { fail!(~"Error: invalid"); };
 
 
                 match child_node {
@@ -99,7 +67,7 @@ pub fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode
                     @Node(s_data, left,
                           delete(s_data, right))
                   }
-                  @Empty => { fail(~"Should be impossible"); }
+                  @Empty => { fail!(~"Should be impossible"); }
                 }
             }
         }
@@ -109,13 +77,13 @@ pub fn delete<T: Eq Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode
         else if ( node_data < data_to_delete) {
             //io::println(fmt!("right\n"));
             @Node(node_data, left, delete(data_to_delete, right)) }
-        else { fail(~"A number became neither <, >, or ="); }
+        else { fail!(~"A number became neither <, >, or ="); }
       }
     }
 }
 
 
-pub fn insert<T: Eq Ord> (newdata: @T,
+pub fn insert<T: Eq + Ord> (newdata: @T,
                           node: @MaybeNode<T>) -> @MaybeNode<T> {
     let result = @match node {
       @Empty => {
@@ -139,7 +107,7 @@ pub fn insert<T: Eq Ord> (newdata: @T,
 }
 
 
-pub fn find<T: Eq Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
+pub fn find<T: Eq + Ord> (newdata: @T, root: @MaybeNode<T>) -> @MaybeNode<T> {
     @match root {
       @Empty => {
         return @Empty;
@@ -202,11 +170,11 @@ fn check_add_one () {
     let inserted = insert(@2, root);
 
     match  (expected, inserted) {
-      (@Empty, _)  => { fail; }
-      (_, @Empty)  => { fail; }
+      (@Empty, _)  => { fail!("Illogic"); }
+      (_, @Empty)  => { fail!("Illogic"); }
       (@Node(expected_data, _, _),
        @Node(inserted_data, _, _)) => {
-            assert expected_data == inserted_data
+            assert!( expected_data == inserted_data);
       }
     }
 }
@@ -219,43 +187,43 @@ fn check_proper_inserts () {
     // root
     test_tree = insert(@8, test_tree);
 
-    assert test_tree == @Node(@8, @Empty, @Empty);
+    assert!( test_tree == @Node(@8, @Empty, @Empty));
 
     // Right
     test_tree = insert(@11, test_tree);
 
-    assert test_tree == @Node(@8,
+    assert!( test_tree == @Node(@8,
                               @Empty,
-                              @Node(@11, @Empty, @Empty));
+                              @Node(@11, @Empty, @Empty)));
 
     // Left
     test_tree = insert(@2, test_tree);
 
-    assert test_tree == @Node(@8,
+    assert!( test_tree == @Node(@8,
                               @Node(@2, @Empty, @Empty),
-                              @Node(@11, @Empty, @Empty));
+                              @Node(@11, @Empty, @Empty)));
     //And a dupe test
     test_tree = insert(@2, test_tree);
 
-    assert test_tree == @Node(@8,
+    assert!( test_tree == @Node(@8,
                               @Node(@2, @Empty, @Empty),
-                              @Node(@11, @Empty, @Empty));
+                              @Node(@11, @Empty, @Empty)));
 
     // And recurse a bit on the left
     test_tree = insert(@3, test_tree);
 
-    assert test_tree == @Node(@8,
+    assert!( test_tree == @Node(@8,
                               @Node(@2,
                                     @Empty,
                                     @Node(@3, @Empty, @Empty)),
-                              @Node(@11, @Empty, @Empty));
+                              @Node(@11, @Empty, @Empty)));
 
 }
 
 #[test]
 fn check_finding_top () {
     let test_tree = give_me_test_tree();
-    assert find(@8, test_tree) == test_tree;
+    assert!( find(@8, test_tree) == test_tree);
 }
 #[test]
 fn check_finding_right () {
@@ -264,9 +232,9 @@ fn check_finding_right () {
     {
       @Node(_, _, right) =>
       {
-        assert find(@11, test_tree) == right
+        assert!( find(@11, test_tree) == right);
       }
-      _ => {fail(~"Error") }
+      _ => {fail!(~"Error") }
     }
 }
 
@@ -277,9 +245,9 @@ fn check_finding_left () {
     {
       @Node(_, left, _) =>
       {
-        assert find(@2, test_tree) == left
+        assert!( find(@2, test_tree) == left);
       }
-      _ => {fail(~"Error") }
+      _ => {fail!(~"Error") }
     }
 }
 #[test]
@@ -288,18 +256,18 @@ fn check_finding_lower () {
     match test_tree {
       @Node(_, left, _) => {
         match left {
-          @Node(_, deeper_left, _) => { assert find(@-10, test_tree) == deeper_left }
-          _ => { fail(~"Error") }
+          @Node(_, deeper_left, _) => { assert!( find(@-10, test_tree) == deeper_left) }
+          _ => { fail!(~"Error") }
         }
       }
-      _ => {fail(~"Error") }
+      _ => {fail!(~"Error") }
     }
 }
 
 #[test]
 fn check_finding_not_there () {
     let test_tree = give_me_test_tree();
-    assert find(@80, test_tree) == @Empty;
+    assert!( find(@80, test_tree) == @Empty);
 }
 
 
@@ -307,18 +275,18 @@ fn check_finding_not_there () {
 #[test]
 fn delete_empty () {
     let test_tree : @MaybeNode<int> = @Empty;
-    assert delete(@-1, test_tree) == @Empty;
+    assert!( delete(@-1, test_tree) == @Empty);
 }
 #[test]
 fn delete_root () {
     let mut root = @Empty;
     root = insert(@10, root);
     // sanity check
-    assert root == @Node(@10, @Empty, @Empty);
+    assert!( root == @Node(@10, @Empty, @Empty));
 
     root = delete(@10, root);
     // check for correct deletion
-    assert root == @Empty;
+    assert!( root == @Empty);
 }
 #[test]
 fn delete_single_leaf_short () {
@@ -333,7 +301,7 @@ fn delete_single_leaf_short () {
     other = delete(@40, other);
 
     // check for correct deletion
-    assert root == other;
+    assert!( root == other);
 }
 #[test]
 fn delete_single_leaf_longer () {
@@ -351,7 +319,7 @@ fn delete_single_leaf_longer () {
     root = delete(@30, root);
 
     // check for correct deletion
-    assert root == other;
+    assert!( root == other);
 
 }
 #[test]
@@ -369,7 +337,7 @@ fn delete_single_middle () {
     root = delete(@20, root);
 
     // check for correct deletion
-    assert root == other;
+    assert!( root == other);
 
     // now for a left insert check
     root = insert(@-10, @Empty);
@@ -380,7 +348,7 @@ fn delete_single_middle () {
     other = insert(@-30, other);
 
     root = delete(@-20, root);
-    assert root == other;
+    assert!( root == other);
 
 
     //check sides
@@ -392,7 +360,7 @@ fn delete_single_middle () {
     other = insert(@-30, other);
 
     root = delete(@20, root);
-    assert root == other;
+    assert!( root == other);
 
 }
 
@@ -403,8 +371,8 @@ fn check_eq() {
     let test_tree2 : @MaybeNode<int> = @Empty;
     let test_tree3 = @Node(@-10, @Empty, @Empty);
 
-    assert test_tree == test_tree2;
-    assert test_tree3 == test_tree3;
+    assert!( test_tree == test_tree2);
+    assert!( test_tree3 == test_tree3);
 
     let mut test_tree4 = @Node(@-1, @Empty, @Empty);
     test_tree4 = insert(@10, test_tree4);
@@ -422,8 +390,8 @@ fn check_eq() {
     test_tree5 = insert(@39, test_tree5);
     test_tree5 = insert(@42, test_tree5);
 
-    assert test_tree4 == test_tree4;
-    assert test_tree4 == test_tree5;
+    assert!( test_tree4 == test_tree4);
+    assert!( test_tree4 == test_tree5);
 }
 
 #[test]
@@ -432,8 +400,8 @@ fn check_ne() {
     let test_tree3 = @Node(@-10, @Empty, @Empty);
 
     //commute the !-
-    assert test_tree3 != test_tree;
-    assert test_tree != test_tree3;
+    assert!( test_tree3 != test_tree);
+    assert!( test_tree != test_tree3);
 
     let mut test_tree4 = @Node(@-1, @Empty, @Empty);
     test_tree4 = insert(@10, test_tree4);
@@ -452,20 +420,20 @@ fn check_ne() {
     test_tree5 = insert(@42, test_tree5);
     test_tree5 = insert(@51, test_tree5);
 
-    assert test_tree4 != test_tree3;
-    assert test_tree4 != test_tree5;
+    assert!( test_tree4 != test_tree3);
+    assert!( test_tree4 != test_tree5);
 }
 
 #[test]
 fn check_parental_ignoring () {
-    assert ( @Node(@8,
+    assert! ( @Node(@8,
                  @Empty,
                  @Node(@11, @Empty, @Empty)) ==
             @Node(@8,
                   @Empty,
                   @Node(@11,
                         @Empty,
-                        @Empty)))
+                        @Empty)));
 
 }
 
@@ -473,18 +441,18 @@ fn check_parental_ignoring () {
 
 #[test]
 fn check_minimum() {
-    let mut tree = insert(@20, @Empty);
+    let tree = insert(@20, @Empty);
     match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @20 }
+      None => { fail!(~"Rong") }
+      Some(data) => { assert!( data == @20) }
     }
 
     let mut tree = insert(@20, @Empty);
     tree = insert(@30, tree);
     tree = insert(@40, tree);
     match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @20 }
+      None => { fail!(~"Rong") }
+      Some(data) => { assert!( data == @20) }
     }
     // this setup segfaults!
     let mut tree = insert(@0, @Empty);
@@ -497,22 +465,22 @@ fn check_minimum() {
     tree = insert(@-15, tree);
 
     match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @-20 }
+      None => { fail!(~"Rong") }
+      Some(data) => { assert!( data == @-20) }
     }
 
     tree = insert(@-21, tree);
 
     match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-  Some(data) => { assert data == @-21 }
+      None => { fail!(~"Rong") }
+  Some(data) => { assert!( data == @-21) }
 }
     tree = insert(@-50, tree);
     tree = insert(@-40, tree);
     tree = insert(@-42, tree);
     match node_data(minimum(tree)) {
-      None => { fail(~"Rong") }
-      Some(data) => { assert data == @-50 }
+      None => { fail!(~"Rong") }
+      Some(data) => { assert!( data == @-50) }
     }
 }
 
@@ -521,13 +489,13 @@ fn check_minimum() {
 fn check_delete_empty () {
     // empty case
     let tree : @MaybeNode<int> = @Empty;
-    assert delete(@20, tree) == @Empty;
+    assert!( delete(@20, tree) == @Empty);
 }
 #[test]
 fn check_delete_root () {
     // just a root
     let tree : @MaybeNode<int> = insert(@20, @Empty);
-    assert delete(@20, tree) == @Empty;
+    assert!( delete(@20, tree) == @Empty);
 }
 
 #[test]
@@ -536,12 +504,12 @@ fn check_delete_root_2_kids () {
     let mut tree : @MaybeNode<int> = insert(@20, @Empty);
     tree = insert(@10, tree);
     tree = insert(@30, tree);
-    assert node_data(delete(@20, tree)) == Some(@30);
+    assert!( node_data(delete(@20, tree)) == Some(@30));
 
     // construct a tree that should have the same shape
     let mut compare_tree = insert(@30, @Empty);
     compare_tree = insert(@10, compare_tree);
-    assert delete(@20, tree) == compare_tree;
+    assert!( delete(@20, tree) == compare_tree);
 }
 #[test]
 fn check_delete_right_one () {
@@ -554,7 +522,7 @@ fn check_delete_right_one () {
 
     let mut compare_tree = insert(@0, @Empty);
     compare_tree = insert(@-10, compare_tree);
-    assert compare_tree == tree;
+    assert!( compare_tree == tree);
 }
 
 #[test]
@@ -568,7 +536,7 @@ fn check_delete_left_one () {
 
     let mut compare_tree = insert(@0, @Empty);
     compare_tree = insert(@10, compare_tree);
-    assert compare_tree == tree;
+    assert!( compare_tree == tree);
 }
 #[test]
 fn check_delete_left_chain () {
@@ -584,7 +552,7 @@ fn check_delete_left_chain () {
     compare_tree = insert(@-10, compare_tree);
     compare_tree = insert(@-20, compare_tree);
 
-    assert compare_tree == tree
+    assert!( compare_tree == tree);
 }
 
 #[test]
@@ -601,7 +569,7 @@ fn check_delete_right_chain () {
     compare_tree = insert(@10, compare_tree);
     compare_tree = insert(@20, compare_tree);
 
-    assert compare_tree == tree
+    assert!( compare_tree == tree);
 }
 
 #[test]
@@ -619,5 +587,5 @@ fn check_delete_double () {
     compare_tree = insert(@20, compare_tree);
     compare_tree = insert(@15, compare_tree);
 
-    assert compare_tree == tree
+    assert!( compare_tree == tree);
 }
