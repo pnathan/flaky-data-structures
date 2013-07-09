@@ -5,11 +5,15 @@ build:
 	rustc --lib structures.rc
 
 # these tests are unit tests
-run_test: trees/test_bst trees/test_llrb linear/test_linear
+run_test: trees/test_bst trees/test_llrb linear/test_linear linear/test_circular
 
 linear/test_linear: linear/linear.rs
 	rustc --test linear/linear.rs -o linear/test_linear
 	./linear/test_linear
+
+linear/test_circular: linear/circular.rs
+	rustc --test linear/circular.rs -o linear/test_circular
+	./linear/test_circular
 
 trees/test_llrb: trees/llrb.rs
 	rustc --test trees/llrb.rs -o trees/test_llrb
