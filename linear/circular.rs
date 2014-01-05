@@ -25,7 +25,7 @@ impl<T: Clone> Ring<T> {
 
         let mut temp = with_capacity(size);
 
-        for uint::range(0, size) |i| {
+        for i in uint::range(0, size).iter() {
             // TODO: move this out of the loop.
             let dummy: T = default_value.clone();
             unsafe {
