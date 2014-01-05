@@ -2,13 +2,13 @@ all: build run_test
 
 # this builds the library
 build:
-	rustc --lib structures.rc
+	rustc --lib structures.rs
 
 # these tests are unit tests
 run_test: trees/test_bst trees/test_llrb linear/test_linear linear/test_circular
 
-linear/test_linear: linear/linear.rs
-	rustc --test linear/linear.rs -o linear/test_linear
+linear/test_linear: linear/list.rs
+	rustc --test linear/list.rs -o linear/test_linear
 	./linear/test_linear
 
 linear/test_circular: linear/circular.rs

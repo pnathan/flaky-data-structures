@@ -25,13 +25,15 @@ impl<T: Clone> Ring<T> {
 
         let mut temp = with_capacity(size);
 
-        for i in uint::range(0, size).iter() {
+        let mut i = 0;
+        while i < size {
             // TODO: move this out of the loop.
             let dummy: T = default_value.clone();
-            unsafe {
-                temp.push_fast(dummy)
-            }
-        };
+
+            temp.push(dummy);
+
+            i += 1;
+        }
 
         Ring { m_contents : temp,
               m_length: 0,
@@ -83,12 +85,15 @@ impl<T: Clone> Ring<T> {
 fn test_new() {
     let r : Ring<int> = Ring::new(1,0);
     assert!(r.size() == 0);
+
+    let r : Ring<int> = Ring::new(128,0);
+    assert!(r.size() == 0);
 }
 
 #[test]
+#[should_fail]
 fn test_fail_init() {
-    let r : Ring<int> = Ring::new(0);
-    assert!(r.size() == 0);
+    let r : Ring<int> = Ring::new(0,0);
 }
 #[test]
 fn test_push() {
