@@ -2,7 +2,7 @@ all: build run_test
 
 # this builds the library
 build:
-	rustc --lib structures.rs
+	rustc --crate-type=lib structures.rs
 
 # these tests are unit tests
 run_test: trees/test_bst trees/test_llrb linear/test_linear linear/test_circular

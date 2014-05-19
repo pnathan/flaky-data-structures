@@ -29,17 +29,17 @@ pub enum List<T> {
     Cons(T, rc::Rc<List<T>>)
 }
 
-pub fn cons<T: Clone + Freeze> (data: T, seq : rc::Rc<List<T>>) -> rc::Rc<List<T>> {
+pub fn cons<T: Clone> (data: T, seq : rc::Rc<List<T>>) -> rc::Rc<List<T>> {
     rc::Rc::new(Cons(data, seq))
 }
 
 // A concise way ot writing nil
-pub fn nil<T: Freeze>() -> rc::Rc<List<T>> {
+pub fn nil<T>() -> rc::Rc<List<T>> {
     rc::Rc::new(Nil::<T>)
 }
 
 // Convert from a vector to a linked list
-pub fn from_vec<T: Clone + Freeze>(v: &[T]) -> rc::Rc<List<T>> {
+pub fn from_vec<T: Clone>(v: &[T]) -> rc::Rc<List<T>> {
     let mut accum = nil();
     let len : uint = v.len();
     let mut i  = len - 1;
@@ -52,7 +52,7 @@ pub fn from_vec<T: Clone + Freeze>(v: &[T]) -> rc::Rc<List<T>> {
 }
 
 pub fn first<T: Clone>(list : &rc::Rc<List<T>>) -> Option<T> {
-    let thing = list.borrow();
+    let thing = list.deref();
     match (thing) {
         &Nil => {
             None
@@ -63,8 +63,8 @@ pub fn first<T: Clone>(list : &rc::Rc<List<T>>) -> Option<T> {
     }
 }
 
-pub fn rest<T: Freeze>(list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
-    match(list.borrow()) {
+pub fn rest<T>(list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
+    match(list.deref()) {
         &Nil => {
             nil()
         }
@@ -74,9 +74,9 @@ pub fn rest<T: Freeze>(list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
     }
 }
 
-pub fn append<T: Freeze + Clone>(list : &rc::Rc<List<T>>,
+pub fn append<T: Clone>(list : &rc::Rc<List<T>>,
              other: &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
-    match (list.borrow()) {
+    match (list.deref()) {
         &Nil => {
             other.clone()
         }
@@ -95,7 +95,7 @@ pub fn elt<T : Clone>(list : &rc::Rc<List<T>>, idx: u64) -> Option<T> {
 
     let retval = None;
     while counter <= idx {
-        match(temp.borrow()) {
+        match(temp.deref()) {
             &Nil => {
                 break;
             }
@@ -114,7 +114,7 @@ pub fn elt<T : Clone>(list : &rc::Rc<List<T>>, idx: u64) -> Option<T> {
 }
 
 pub fn length<T>(list :&rc::Rc<List<T>>) -> u64 {
-    match (list.borrow()) {
+    match (list.deref()) {
         &Nil => {
             0
         }
@@ -130,20 +130,20 @@ pub fn peek<T : Clone>(list : &rc::Rc<List<T>>) -> Option<T> {
 
 // Returns the first element, along with a list that doesn't have
 // the first element.
-pub fn pop<T: Clone + Freeze>(list : &rc::Rc<List<T>>) -> (Option<T>, rc::Rc<List<T>>) {
+pub fn pop<T: Clone >(list : &rc::Rc<List<T>>) -> (Option<T>, rc::Rc<List<T>>) {
     let start = first(list);
     let others = rest(list);
     return (start, others)
 }
 
 // Returns the new list with the new element
-pub fn push<T: Clone + Freeze>(value : T, list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
+pub fn push<T: Clone>(value : T, list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
     cons(value, list.clone())
 }
 
 // Push onto the end of the list
-pub fn push_back<T:Clone + Freeze>(value : T, list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
-    match(list.borrow()) {
+pub fn push_back<T:Clone>(value : T, list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
+    match(list.deref()) {
         &Nil => {
             return cons(value, nil())
         }
@@ -153,13 +153,13 @@ pub fn push_back<T:Clone + Freeze>(value : T, list : &rc::Rc<List<T>>) -> rc::Rc
     }
 }
 
-pub fn enqueue<T:Clone + Freeze>(value : T, list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
+pub fn enqueue<T:Clone>(value : T, list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
     push_back(value, list)
 }
 
-pub fn delete<T: Eq + Clone + Freeze> (data : T,
+pub fn delete<T: Eq + Clone> (data : T,
                                    list : &rc::Rc<List<T>>) -> rc::Rc<List<T>> {
-    match(list.borrow()) {
+    match(list.deref()) {
         &Nil => {
             nil()
         }
@@ -175,12 +175,12 @@ pub fn delete<T: Eq + Clone + Freeze> (data : T,
     }
 }
 
-pub fn delete_at<T: Eq + Clone + Freeze>(list: &rc::Rc<List<T>>, idx: u64) -> rc::Rc<List<T>> {
+pub fn delete_at<T: Eq + Clone>(list: &rc::Rc<List<T>>, idx: u64) -> rc::Rc<List<T>> {
     delete_at_under(list,idx,0)
 }
 
-fn delete_at_under<T: Eq + Clone + Freeze>(list: &rc::Rc<List<T>>, idx: u64, counter: u64) -> rc::Rc<List<T>> {
-    match(list.borrow()) {
+fn delete_at_under<T: Eq + Clone>(list: &rc::Rc<List<T>>, idx: u64, counter: u64) -> rc::Rc<List<T>> {
+    match(list.deref()) {
       &Nil => {
             nil()
       }
@@ -304,54 +304,54 @@ fn check_delete() {
 
 #[test]
 fn check_peek() {
-    let q : rc::Rc<List<~str>> = nil();
+    let q : rc::Rc<List<str>> = nil();
     assert!(peek(&q) == None);
 
-    let q : rc::Rc<List<~str>> = from_vec([~"a"]);
-    assert!(peek(&q) == Some(~"a"));
+    let q : rc::Rc<List<str>> = from_vec(["a"]);
+    assert!(peek(&q) == Some("a"));
 
-    let q : rc::Rc<List<~str>> = from_vec([~"a", ~"b"]);
-    assert!(peek(&q) == Some(~"a"));
+    let q : rc::Rc<List<str>> = from_vec(["a", "b"]);
+    assert!(peek(&q) == Some("a"));
 
 }
 
 #[test]
 fn check_pop() {
-    let q : rc::Rc<List<~str>> = nil();
+    let q : rc::Rc<List<str>> = nil();
     assert!(pop(&q) == (None, nil()));
 
-    let q : rc::Rc<List<~str>> = from_vec([~"a"]);
-    assert!(pop(&q) == (Some(~"a"), nil()));
+    let q : rc::Rc<List<str>> = from_vec(["a"]);
+    assert!(pop(&q) == (Some("a"), nil()));
 
-    let q : rc::Rc<List<~str>> = from_vec([~"a", ~"b"]);
-    assert!(pop(&q) == (Some(~"a"), cons(~"b", nil())));
+    let q : rc::Rc<List<str>> = from_vec(["a", "b"]);
+    assert!(pop(&q) == (Some("a"), cons("b", nil())));
 
 }
 
 #[test]
 fn check_push_back() {
-    let q : rc::Rc<List<~str>> = nil();
+    let q : rc::Rc<List<str>> = nil();
 
-    let q = push_back(~"a", &q);
-    assert!(peek(&q) == Some(~"a"));
+    let q = push_back("a", &q);
+    assert!(peek(&q) == Some("a"));
 
-    let q = push_back(~"b", &q);
-    assert!(peek(&q) == Some(~"a"));
+    let q = push_back("b", &q);
+    assert!(peek(&q) == Some("a"));
 
     let (_, q) = pop(&q);
-    assert!(peek(&q) == Some(~"b"));
+    assert!(peek(&q) == Some("b"));
 }
 
 #[test]
 fn check_push() {
-    let q : rc::Rc<List<~str>> = nil();
+    let q : rc::Rc<List<str>> = nil();
 
-    let q = push(~"a", &q);
-    assert!(peek(&q) == Some(~"a"));
+    let q = push("a", &q);
+    assert!(peek(&q) == Some("a"));
 
-    let q = push(~"b", &q);
-    assert!(peek(&q) == Some(~"b"));
+    let q = push("b", &q);
+    assert!(peek(&q) == Some("b"));
 
     let (_, q) = pop(&q);
-    assert!(peek(&q) == Some(~"a"));
+    assert!(peek(&q) == Some("a"));
 }

@@ -5,10 +5,12 @@ It's a finite data structure with good performance.
 
 */
 
-use std::vec::with_capacity;
+//use std::vec::with_capacity;
 use std::uint;
+use std::vec;
+use std::vec::FromVec;
 
-pub struct Ring< T> {
+pub struct Ring<T> {
     m_contents: ~[T],
     m_start_ptr: uint,
     m_end_ptr: uint,
@@ -23,7 +25,7 @@ impl<T: Clone> Ring<T> {
             fail!("Ring buffers must have > 0 elements");
         }
 
-        let mut temp = with_capacity(size);
+        let mut temp = Vec::with_capacity(size);
 
         let mut i = 0;
         while i < size {
@@ -35,7 +37,7 @@ impl<T: Clone> Ring<T> {
             i += 1;
         }
 
-        Ring { m_contents : temp,
+        Ring { m_contents : FromVec::from_vec(temp),
               m_length: 0,
               m_start_ptr: 0,
               m_end_ptr: 0,
