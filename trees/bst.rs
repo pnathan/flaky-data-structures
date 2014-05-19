@@ -1,27 +1,29 @@
 // Happy hacking.
-
-
 /*
 Initial exploration: Pure functional data structures
 */
+
+// std::rc has Eq derivable. But std::gc doesn't.
+use std::rc;
+
 // A binary tree node.
 #[deriving(Eq)]
 pub enum MaybeNode<T>
 {
     Empty,
     // Data, left, right
-    Node(@T, @MaybeNode<T>, @MaybeNode<T>)
+    Node(rc::Rc<T>, rc::Rc<MaybeNode<T>>, rc::Rc<MaybeNode<T>>)
 }
 
 
-pub fn node_data<T> (node: @MaybeNode<T>) -> Option<@T> {
-    match node {
-      @Empty => {None}
-      @Node(data, _, _) => { Some(data) }
+pub fn node_data<T> (node: rc::Rc<MaybeNode<T>>) -> Option<rc::Rc<T>> {
+    match node.deref() {
+      &Empty => {None}
+      &Node(ref data, _, _) => { Some(data.clone()) }
     }
 }
 
-
+/*
 // Pure functional delete
 pub fn delete<T: Eq + Ord> (data_to_delete: @T, node: @MaybeNode<T>) -> @MaybeNode<T> {
     //io::println(fmt!("%?\n", node));
@@ -589,3 +591,4 @@ fn check_delete_double () {
 
     assert!( compare_tree == tree);
 }
+*/

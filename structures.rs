@@ -10,7 +10,7 @@ Crate file for the library
 
 pub mod trees
 {
-//     mod bst;
+     mod bst;
 //     mod llrb;
 //     mod dbl_linked;
 }
