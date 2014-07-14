@@ -8,10 +8,10 @@ It's a finite data structure with good performance.
 //use std::vec::with_capacity;
 use std::uint;
 use std::vec;
-use std::vec::FromVec;
+
 
 pub struct Ring<T> {
-    m_contents: ~[T],
+    m_contents: Vec<T>,
     m_start_ptr: uint,
     m_end_ptr: uint,
     m_length: uint,
@@ -37,7 +37,7 @@ impl<T: Clone> Ring<T> {
             i += 1;
         }
 
-        Ring { m_contents : FromVec::from_vec(temp),
+        Ring { m_contents : temp,
               m_length: 0,
               m_start_ptr: 0,
               m_end_ptr: 0,
@@ -52,7 +52,7 @@ impl<T: Clone> Ring<T> {
     // check the front of the ring
     pub fn peek(&self) -> Option<T> {
         if(self.m_length > 0) {
-            Some(self.m_contents[self.m_start_ptr].clone())
+            Some(self.m_contents.get(self.m_start_ptr).clone())
         }
         else {
             None
@@ -61,7 +61,7 @@ impl<T: Clone> Ring<T> {
 
     // enqueue
     pub fn push_back(&mut self,  data: T) -> () {
-        self.m_contents[self.m_end_ptr] = data;
+        *self.m_contents.get_mut(self.m_end_ptr) = data;
         self.m_end_ptr = (self.m_end_ptr + 1) % self.m_max;
         self.m_length += 1;
     }
@@ -72,7 +72,7 @@ impl<T: Clone> Ring<T> {
           None
         }
         else {
-            let retval = self.m_contents[self.m_start_ptr].clone();
+            let retval = self.m_contents.get(self.m_start_ptr).clone();
 
             self.m_start_ptr = (self.m_start_ptr + 1) % self.m_max;
             self.m_length -= 1;

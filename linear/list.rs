@@ -23,7 +23,7 @@ use std::rc;
 //use std::gc;
 //use extra::arc::Arc;
 
-#[deriving(Eq,Clone)]
+#[deriving(PartialEq,Clone)]
 pub enum List<T> {
     Nil,
     Cons(T, rc::Rc<List<T>>)
@@ -236,7 +236,7 @@ fn check_from_vec_some() {
                          cons(20,
                               cons(30,
                                    rc::Rc::new(Nil::<int>))));
-    let some_vector = [10,20,30];
+    let some_vector = [10i,20,30];
 
 
     assert!(some_list == from_vec(some_vector));
@@ -244,7 +244,7 @@ fn check_from_vec_some() {
 
 #[test]
 fn check_first() {
-    let three_long : rc::Rc<List<int>> = from_vec([10, 20, 30]);
+    let three_long : rc::Rc<List<int>> = from_vec([10i, 20, 30]);
     let first_thing = first(&three_long);
     assert!( first_thing == Some(10));
 
@@ -252,8 +252,8 @@ fn check_first() {
 
 #[test]
 fn check_rest() {
-    let three_long : rc::Rc<List<int>> = from_vec([10, 20, 30]);
-    let two_long : rc::Rc<List<int>> = from_vec([20, 30]);
+    let three_long : rc::Rc<List<int>> = from_vec([10i, 20, 30]);
+    let two_long : rc::Rc<List<int>> = from_vec([20i, 30]);
 
     let others = rest(&three_long);
 
@@ -263,15 +263,15 @@ fn check_rest() {
 
 #[test]
 fn check_append() {
-    let three_long : rc::Rc<List<int>> = from_vec([10, 20, 30]);
-    let three_long2 : rc::Rc<List<int>> = from_vec([40, 50, 60]);
+    let three_long : rc::Rc<List<int>> = from_vec([10i, 20, 30]);
+    let three_long2 : rc::Rc<List<int>> = from_vec([40i, 50, 60]);
 
-    assert!( append(&three_long, &three_long2) == from_vec([10, 20,30,40,50,60]));
+    assert!( append(&three_long, &three_long2) == from_vec([10i, 20,30,40,50,60]));
 }
 
 #[test]
 fn check_length() {
-    let three_long = from_vec([10, 20, 30]);
+    let three_long = from_vec([10i, 20, 30]);
     let mut len : u64 = length(&three_long);
 
     assert!( len == 3);
@@ -304,33 +304,33 @@ fn check_delete() {
 
 #[test]
 fn check_peek() {
-    let q : rc::Rc<List<str>> = nil();
+    let q : rc::Rc<List<&str>> = nil();
     assert!(peek(&q) == None);
 
-    let q : rc::Rc<List<str>> = from_vec(["a"]);
+    let q : rc::Rc<List<&str>> = from_vec(["a"]);
     assert!(peek(&q) == Some("a"));
 
-    let q : rc::Rc<List<str>> = from_vec(["a", "b"]);
+    let q : rc::Rc<List<&str>> = from_vec(["a", "b"]);
     assert!(peek(&q) == Some("a"));
 
 }
 
 #[test]
 fn check_pop() {
-    let q : rc::Rc<List<str>> = nil();
+    let q : rc::Rc<List<&str>> = nil();
     assert!(pop(&q) == (None, nil()));
 
-    let q : rc::Rc<List<str>> = from_vec(["a"]);
+    let q : rc::Rc<List<&str>> = from_vec(["a"]);
     assert!(pop(&q) == (Some("a"), nil()));
 
-    let q : rc::Rc<List<str>> = from_vec(["a", "b"]);
+    let q : rc::Rc<List<&str>> = from_vec(["a", "b"]);
     assert!(pop(&q) == (Some("a"), cons("b", nil())));
 
 }
 
 #[test]
 fn check_push_back() {
-    let q : rc::Rc<List<str>> = nil();
+    let q : rc::Rc<List<&str>> = nil();
 
     let q = push_back("a", &q);
     assert!(peek(&q) == Some("a"));
@@ -344,7 +344,7 @@ fn check_push_back() {
 
 #[test]
 fn check_push() {
-    let q : rc::Rc<List<str>> = nil();
+    let q : rc::Rc<List<&str>> = nil();
 
     let q = push("a", &q);
     assert!(peek(&q) == Some("a"));
