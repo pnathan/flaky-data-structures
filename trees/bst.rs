@@ -7,7 +7,7 @@ Initial exploration: Pure functional data structures
 use std::rc;
 
 // A binary tree node.
-#[deriving(Eq)]
+#[deriving(PartialEq)]
 pub enum MaybeNode<T>
 {
     Empty,
